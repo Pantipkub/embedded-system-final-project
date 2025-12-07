@@ -22,6 +22,10 @@ import { computeRainStatus, RainHistoryPoint } from "./lib/rain";
 export default function Page() {
   const [status, setStatus] = useState<ClotheslineStatus | null>(null);
   const [history, setHistory] = useState<RainHistoryPoint[]>([]);
+  const [lastRainStateChangeAt, setLastRainStateChangeAt] = useState<number>(
+    Date.now()
+  );
+  const [lastAutoActionAt, setLastAutoActionAt] = useState<number>(0);
 
   useEffect(() => {
     // startMockStatusPublisher();
@@ -77,6 +81,53 @@ export default function Page() {
       rainPrediction,
     };
   }, [status, history]);
+
+  // Track rainPrediction stability window
+  useEffect(() => {
+    setLastRainStateChangeAt(Date.now());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [derived.rainPrediction]);
+
+  // Automation: retract/extend based on rain prediction with stability and cooldown
+  useEffect(() => {
+    if (!status) return;
+    if (derived.motorRunning) return;
+
+    const STABILITY_MS = 10_000; // rain state must be stable for 10s
+    const COOLDOWN_MS = 45_000; // min 45s between auto actions
+
+    const now = Date.now();
+    const rainStable = now - lastRainStateChangeAt >= STABILITY_MS;
+    const cooldownReady = now - lastAutoActionAt >= COOLDOWN_MS;
+    if (!rainStable || !cooldownReady) return;
+
+    const shouldRetract =
+      derived.rainPrediction && derived.clotheslineStatus === "extended";
+    const shouldExtend =
+      !derived.rainPrediction && derived.clotheslineStatus === "retracted";
+
+    const run = async () => {
+      try {
+        if (shouldRetract) {
+          await sendMotorCommand("RETRACT");
+          setLastAutoActionAt(Date.now());
+        } else if (shouldExtend) {
+          await sendMotorCommand("EXTEND");
+          setLastAutoActionAt(Date.now());
+        }
+      } catch {}
+    };
+
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    status?.timestamp,
+    derived.rainPrediction,
+    derived.clotheslineStatus,
+    derived.motorRunning,
+    lastRainStateChangeAt,
+    lastAutoActionAt,
+  ]);
 
   const handleExtend = async () => {
     await sendMotorCommand("EXTEND");

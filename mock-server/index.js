@@ -25,13 +25,31 @@ let isMotorRunning = false;
 let clotheslinePosition = "retracted"; // "extended" | "retracted"
 let motorTimer = null;
 let lastProcessedCmd = null;
+// Stability mode for humidity to help front-end automation tests
+let wetDryMode = "dry"; // "wet" or "dry"
+let nextModeSwitchAt = Date.now() + 30_000; // switch every ~30s for stability
 
 function randomStatus() {
   const now = new Date();
+  // Switch mode occasionally to create stability windows
+  if (Date.now() >= nextModeSwitchAt) {
+    wetDryMode = wetDryMode === "dry" ? "wet" : "dry";
+    nextModeSwitchAt =
+      Date.now() + (25_000 + Math.floor(Math.random() * 20_000)); // 25–45s
+  }
+
+  // Humidity depends on mode: keep ranges stable during the window
+  const humidity =
+    wetDryMode === "wet"
+      ? Math.round(78 + Math.random() * 8) // 78–86%
+      : Math.round(55 + Math.random() * 10); // 55–65%
+
+  // Temperature varies mildly
+  const temperature = +(24 + Math.random() * 6).toFixed(1);
   return {
     system_status: "Active",
-    temperature: +(25 + Math.random() * 8).toFixed(1),
-    humidity: Math.round(60 + Math.random() * 30),
+    temperature,
+    humidity,
     water_level: Math.round(30 + Math.random() * 50),
     clothesline_status: isMotorRunning
       ? clotheslinePosition === "extended"
