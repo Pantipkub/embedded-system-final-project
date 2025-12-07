@@ -176,7 +176,16 @@ onValue(cmdMotorRef, async (snap) => {
   }
 });
 
-app.listen(Number(PORT), () => {
+app.listen(Number(PORT), async () => {
   console.log(`Mock server on http://localhost:${PORT}`);
-  console.log(`POST /start to begin writing status every ${INTERVAL_MS}ms`);
+  // Auto-start status writer on boot for easier testing
+  try {
+    if (!intervalHandle) {
+      await writeStatusOnce();
+      intervalHandle = setInterval(writeStatusOnce, Number(INTERVAL_MS));
+      console.log(`Auto-started status writer (every ${INTERVAL_MS}ms)`);
+    }
+  } catch (err) {
+    console.error("Failed to auto-start status writer:", err);
+  }
 });
