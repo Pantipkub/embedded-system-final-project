@@ -1,0 +1,89 @@
+{
+  "info": {
+    "name": "Clothesline Mock Server",
+    "_postman_id": "c9d2a1c7-5f7b-4f8a-bc3b-collection",
+    "description": "Postman collection to control the mock backend that writes to Firebase RTDB.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{mock_base_url}}/health",
+          "host": ["{{mock_base_url}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Start Writer",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{mock_base_url}}/start",
+          "host": ["{{mock_base_url}}"],
+          "path": ["start"]
+        }
+      }
+    },
+    {
+      "name": "Stop Writer",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{mock_base_url}}/stop",
+          "host": ["{{mock_base_url}}"],
+          "path": ["stop"]
+        }
+      }
+    },
+    {
+      "name": "Command EXTEND",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{mock_base_url}}/command/EXTEND",
+          "host": ["{{mock_base_url}}"],
+          "path": ["command", "EXTEND"]
+        }
+      }
+    },
+    {
+      "name": "Command RETRACT",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{mock_base_url}}/command/RETRACT",
+          "host": ["{{mock_base_url}}"],
+          "path": ["command", "RETRACT"]
+        }
+      }
+    },
+    {
+      "name": "Command IDLE",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{mock_base_url}}/command/IDLE",
+          "host": ["{{mock_base_url}}"],
+          "path": ["command", "IDLE"]
+        }
+      }
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "key": "mock_base_url",
+      "value": "http://localhost:4000"
+    }
+  ]
+}
