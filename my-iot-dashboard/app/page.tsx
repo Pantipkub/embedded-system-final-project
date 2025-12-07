@@ -17,9 +17,11 @@ import {
   startMockStatusPublisher,
   ClotheslineStatus,
 } from "./firebase";
+import { computeRainStatus, RainHistoryPoint } from "./lib/rain";
 
 export default function Page() {
   const [status, setStatus] = useState<ClotheslineStatus | null>(null);
+  const [history, setHistory] = useState<RainHistoryPoint[]>([]);
 
   useEffect(() => {
     // startMockStatusPublisher();
@@ -29,6 +31,22 @@ export default function Page() {
       if (typeof unsub === "function") unsub();
     };
   }, []);
+
+  // Maintain short history for rain computation (last 60s)
+  useEffect(() => {
+    if (!status) return;
+    const point: RainHistoryPoint = {
+      temperature: status.temperature ?? 0,
+      humidity: status.humidity ?? 0,
+      waterLevel: status.water_level ?? 0,
+      ts: Date.now(),
+    };
+    setHistory((prev) => {
+      const next = [...prev, point];
+      const cutoff = Date.now() - 60_000;
+      return next.filter((p) => p.ts >= cutoff);
+    });
+  }, [status?.temperature, status?.humidity, status?.water_level]);
 
   // Derived UI state from RTDB status (fallbacks keep original UI stable)
   const derived = useMemo(() => {
@@ -44,8 +62,11 @@ export default function Page() {
       : (status?.clothesline_status ?? "Idle").toLowerCase().includes("retract")
       ? "retracted"
       : "retracted";
-    // Simple heuristic for rain status when not provided in spec
-    const rainPrediction = humidity >= 70;
+    // Delegate rain status computation to external function
+    const rainPrediction = computeRainStatus(
+      { temperature, humidity, waterLevel, timestamp: status?.timestamp },
+      history
+    );
     return {
       temperature,
       humidity,
@@ -55,7 +76,7 @@ export default function Page() {
       clotheslineStatus,
       rainPrediction,
     };
-  }, [status]);
+  }, [status, history]);
 
   const handleExtend = async () => {
     await sendMotorCommand("EXTEND");
