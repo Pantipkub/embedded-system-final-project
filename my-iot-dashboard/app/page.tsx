@@ -26,6 +26,7 @@ export default function Page() {
     Date.now()
   );
   const [lastAutoActionAt, setLastAutoActionAt] = useState<number>(0);
+  const [enableAuto, setEnableAuto] = useState<boolean>(true);
 
   useEffect(() => {
     // startMockStatusPublisher();
@@ -91,6 +92,7 @@ export default function Page() {
   // Automation: retract/extend based on rain prediction with stability and cooldown
   useEffect(() => {
     if (!status) return;
+    if (!enableAuto) return;
     if (derived.motorRunning) return;
 
     const STABILITY_MS = 10_000; // rain state must be stable for 10s
@@ -127,6 +129,7 @@ export default function Page() {
     derived.motorRunning,
     lastRainStateChangeAt,
     lastAutoActionAt,
+    enableAuto,
   ]);
 
   const handleExtend = async () => {
@@ -302,6 +305,31 @@ export default function Page() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="flex items-center justify-between md:col-span-3 mb-2">
+            <span className="text-sm text-slate-300">Automation</span>
+            <button
+              onClick={() => setEnableAuto((v) => !v)}
+              aria-pressed={enableAuto}
+              className={`relative inline-flex items-center transition-all select-none rounded-full w-24 h-9 px-1 ${
+                enableAuto ? "bg-emerald-500" : "bg-orange-500"
+              }`}
+            >
+              {/* Label positioned away from knob to avoid overlap */}
+              <span
+                className={`absolute text-xs font-semibold text-white ${
+                  enableAuto ? "left-4" : "right-4"
+                }`}
+              >
+                {enableAuto ? "ON" : "OFF"}
+              </span>
+              {/* Knob */}
+              <span
+                className={`absolute top-1 left-1 h-7 w-7 rounded-full bg-white shadow-md transition-transform ${
+                  enableAuto ? "translate-x-14" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
           <button
             onClick={handleExtend}
             disabled={
