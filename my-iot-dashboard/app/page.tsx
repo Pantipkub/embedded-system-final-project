@@ -1,80 +1,79 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { Cloud, Droplets, Thermometer, Zap, Radio, AlertCircle, CheckCircle2, Play, Square } from "lucide-react"
+"use client";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Cloud,
+  Droplets,
+  Thermometer,
+  Zap,
+  Radio,
+  AlertCircle,
+  CheckCircle2,
+  Play,
+  Square,
+} from "lucide-react";
+import {
+  listenStatus,
+  sendMotorCommand,
+  startMockStatusPublisher,
+  ClotheslineStatus,
+} from "./firebase";
 
 export default function Page() {
-  const [clotheslineStatus, setClotheslineStatus] = useState("retracted") // "extended" or "retracted"
-  const [motorRunning, setMotorRunning] = useState(false)
-  const [motorTimer, setMotorTimer] = useState<NodeJS.Timeout | null>(null)
+  const [status, setStatus] = useState<ClotheslineStatus | null>(null);
 
-  const [sensorData, setSensorData] = useState({
-    temperature: 22.5,
-    humidity: 65,
-    waterLevel: 45,
-    rainPrediction: true,
-    ledStatus: true,
-  })
-
-  // Simulate real-time sensor updates
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSensorData((prev) => ({
-        ...prev,
-        temperature: 20 + Math.random() * 12,
-        humidity: 50 + Math.random() * 40,
-        waterLevel: 30 + Math.random() * 50,
-        rainPrediction: Math.random() > 0.4,
-        ledStatus: Math.random() > 0.2,
-      }))
-    }, 2000)
+    startMockStatusPublisher();
+    const unsub = listenStatus((data) => setStatus(data));
+    return () => {
+      // @ts-ignore unsubscribe function from onValue
+      if (typeof unsub === "function") unsub();
+    };
+  }, []);
 
-    return () => clearInterval(interval)
-  }, [])
+  // Derived UI state from RTDB status (fallbacks keep original UI stable)
+  const derived = useMemo(() => {
+    const temperature = status?.temperature ?? 22.5;
+    const humidity = status?.humidity ?? 65;
+    const waterLevel = status?.water_level ?? 45;
+    const ledStatus = (status?.led_indicator ?? "Connected") === "Connected";
+    const motorRunning = (status?.motor_status ?? "STOPPED") === "RUNNING";
+    const clotheslineStatus = (status?.clothesline_status ?? "Idle")
+      .toLowerCase()
+      .includes("extend")
+      ? "extended"
+      : (status?.clothesline_status ?? "Idle").toLowerCase().includes("retract")
+      ? "retracted"
+      : "retracted";
+    // Simple heuristic for rain status when not provided in spec
+    const rainPrediction = humidity >= 70;
+    return {
+      temperature,
+      humidity,
+      waterLevel,
+      ledStatus,
+      motorRunning,
+      clotheslineStatus,
+      rainPrediction,
+    };
+  }, [status]);
 
-  const handleExtend = () => {
-    if (motorRunning || clotheslineStatus === "extended") return
-
-    setMotorRunning(true)
-
-    // Motor runs for 3 seconds, then stops and sets status to extended
-    const timer = setTimeout(() => {
-      setMotorRunning(false)
-      setClotheslineStatus("extended")
-      setMotorTimer(null)
-    }, 3000)
-
-    setMotorTimer(timer)
-  }
-
-  const handleRetract = () => {
-    if (motorRunning || clotheslineStatus === "retracted") return
-
-    setMotorRunning(true)
-
-    // Motor runs for 3 seconds, then stops and sets status to retracted
-    const timer = setTimeout(() => {
-      setMotorRunning(false)
-      setClotheslineStatus("retracted")
-      setMotorTimer(null)
-    }, 3000)
-
-    setMotorTimer(timer)
-  }
-
-  const handleStop = () => {
-    if (motorTimer) {
-      clearTimeout(motorTimer)
-      setMotorTimer(null)
-    }
-    setMotorRunning(false)
-  }
+  const handleExtend = async () => {
+    await sendMotorCommand("EXTEND");
+  };
+  const handleRetract = async () => {
+    await sendMotorCommand("RETRACT");
+  };
+  const handleStop = async () => {
+    await sendMotorCommand("IDLE");
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
       {/* Header */}
       <div className="mb-8 space-y-2">
-        <h1 className="text-3xl md:text-4xl font-bold text-slate-900">Rain Detection & Clothesline System</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+          Rain Detection & Clothesline System
+        </h1>
         <p className="text-slate-600">Real-time monitoring and control</p>
       </div>
 
@@ -82,41 +81,68 @@ export default function Page() {
       <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* System Status Card */}
         <div className="border border-slate-200 bg-white shadow-sm rounded-lg p-4">
-          <h3 className="text-sm font-medium text-slate-600 mb-3">System Status</h3>
+          <h3 className="text-sm font-medium text-slate-600 mb-3">
+            System Status
+          </h3>
           <div className="flex items-center gap-2">
-            {sensorData.ledStatus ? (
+            {derived.ledStatus ? (
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             ) : (
               <AlertCircle className="h-5 w-5 text-red-500" />
             )}
-            <span className="font-semibold text-slate-900">{sensorData.ledStatus ? "Active" : "Offline"}</span>
+            <span className="font-semibold text-slate-900">
+              {derived.ledStatus ? "Active" : "Offline"}
+            </span>
           </div>
+          <p className="mt-2 text-xs text-slate-500">
+            Mock is{" "}
+            {process.env.NEXT_PUBLIC_ENABLE_MOCK === "true"
+              ? "enabled"
+              : "disabled"}
+            .
+          </p>
         </div>
 
         {/* Rain Status Card */}
         <div className="border border-slate-200 bg-white shadow-sm rounded-lg p-4">
-          <h3 className="text-sm font-medium text-slate-600 mb-3">Rain Status</h3>
+          <h3 className="text-sm font-medium text-slate-600 mb-3">
+            Rain Status
+          </h3>
           <div className="flex items-center gap-2">
             <Cloud className="h-5 w-5 text-blue-500" />
             <div
               className={`px-3 py-1 rounded-full text-sm font-medium ${
-                sensorData.rainPrediction ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-700"
+                derived.rainPrediction
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-slate-200 text-slate-700"
               }`}
             >
-              {sensorData.rainPrediction ? "Rain Expected" : "Clear"}
+              {derived.rainPrediction ? "Rain Expected" : "Clear"}
             </div>
           </div>
         </div>
 
         {/* Clothesline Status Card */}
         <div className="border border-slate-200 bg-white shadow-sm rounded-lg p-4">
-          <h3 className="text-sm font-medium text-slate-600 mb-3">Clothesline</h3>
+          <h3 className="text-sm font-medium text-slate-600 mb-3">
+            Clothesline
+          </h3>
           <div className="flex items-center gap-2">
             <Zap
-              className={`h-5 w-5 ${motorRunning ? "text-amber-500" : clotheslineStatus === "extended" ? "text-emerald-500" : "text-slate-400"}`}
+              className={`h-5 w-5 ${
+                derived.motorRunning
+                  ? "text-amber-500"
+                  : derived.clotheslineStatus === "extended"
+                  ? "text-emerald-500"
+                  : "text-slate-400"
+              }`}
             />
             <span className="font-semibold text-slate-900">
-              {motorRunning ? "Running..." : clotheslineStatus === "extended" ? "Extended" : "Retracted"}
+              {derived.motorRunning
+                ? "Running..."
+                : derived.clotheslineStatus === "extended"
+                ? "Extended"
+                : "Retracted"}
             </span>
           </div>
         </div>
@@ -133,12 +159,14 @@ export default function Page() {
             </div>
           </div>
           <div className="space-y-2">
-            <p className="text-4xl font-bold text-slate-900">{sensorData.temperature.toFixed(1)}°C</p>
+            <p className="text-4xl font-bold text-slate-900">
+              {derived.temperature.toFixed(1)}°C
+            </p>
             <p className="text-sm text-slate-500">Current temperature</p>
             <div className="w-full bg-slate-200 rounded-full h-2">
               <div
                 className="bg-red-500 h-2 rounded-full transition-all"
-                style={{ width: `${(sensorData.temperature / 50) * 100}%` }}
+                style={{ width: `${(derived.temperature / 50) * 100}%` }}
               ></div>
             </div>
           </div>
@@ -153,12 +181,14 @@ export default function Page() {
             </div>
           </div>
           <div className="space-y-2">
-            <p className="text-4xl font-bold text-slate-900">{sensorData.humidity.toFixed(0)}%</p>
+            <p className="text-4xl font-bold text-slate-900">
+              {derived.humidity.toFixed(0)}%
+            </p>
             <p className="text-sm text-slate-500">Relative humidity</p>
             <div className="w-full bg-slate-200 rounded-full h-2">
               <div
                 className="bg-blue-500 h-2 rounded-full transition-all"
-                style={{ width: `${sensorData.humidity}%` }}
+                style={{ width: `${derived.humidity}%` }}
               ></div>
             </div>
           </div>
@@ -173,12 +203,14 @@ export default function Page() {
             </div>
           </div>
           <div className="space-y-2">
-            <p className="text-4xl font-bold text-slate-900">{sensorData.waterLevel.toFixed(0)}%</p>
+            <p className="text-4xl font-bold text-slate-900">
+              {derived.waterLevel.toFixed(0)}%
+            </p>
             <p className="text-sm text-slate-500">Tank capacity</p>
             <div className="w-full bg-slate-200 rounded-full h-2">
               <div
                 className="bg-cyan-500 h-2 rounded-full transition-all"
-                style={{ width: `${sensorData.waterLevel}%` }}
+                style={{ width: `${derived.waterLevel}%` }}
               ></div>
             </div>
           </div>
@@ -192,15 +224,19 @@ export default function Page() {
             <Zap className="h-5 w-5" />
             Clothesline Motor Control
           </h2>
-          <p className="text-slate-400 text-sm mt-1">Extend or retract the clothesline with a single tap</p>
+          <p className="text-slate-400 text-sm mt-1">
+            Extend or retract the clothesline with a single tap
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <button
             onClick={handleExtend}
-            disabled={motorRunning || clotheslineStatus === "extended"}
+            disabled={
+              derived.motorRunning || derived.clotheslineStatus === "extended"
+            }
             className={`h-16 text-lg font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
-              motorRunning || clotheslineStatus === "extended"
+              derived.motorRunning || derived.clotheslineStatus === "extended"
                 ? "bg-slate-600 text-slate-400 cursor-not-allowed"
                 : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg cursor-pointer"
             }`}
@@ -211,9 +247,9 @@ export default function Page() {
 
           <button
             onClick={handleStop}
-            disabled={!motorRunning}
+            disabled={!derived.motorRunning}
             className={`h-16 text-lg font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
-              motorRunning
+              derived.motorRunning
                 ? "bg-red-600 hover:bg-red-700 text-white shadow-lg cursor-pointer"
                 : "bg-slate-600 text-slate-400 cursor-not-allowed"
             }`}
@@ -224,9 +260,11 @@ export default function Page() {
 
           <button
             onClick={handleRetract}
-            disabled={motorRunning || clotheslineStatus === "retracted"}
+            disabled={
+              derived.motorRunning || derived.clotheslineStatus === "retracted"
+            }
             className={`h-16 text-lg font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
-              motorRunning || clotheslineStatus === "retracted"
+              derived.motorRunning || derived.clotheslineStatus === "retracted"
                 ? "bg-slate-600 text-slate-400 cursor-not-allowed"
                 : "bg-orange-600 hover:bg-orange-700 text-white shadow-lg cursor-pointer"
             }`}
@@ -241,16 +279,26 @@ export default function Page() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div
-                className={`h-3 w-3 rounded-full animate-pulse ${motorRunning ? "bg-emerald-500" : "bg-slate-500"}`}
+                className={`h-3 w-3 rounded-full animate-pulse ${
+                  derived.motorRunning ? "bg-emerald-500" : "bg-slate-500"
+                }`}
               ></div>
               <span className="text-white font-medium">
                 Motor:{" "}
-                <span className={motorRunning ? "text-emerald-400" : "text-slate-400"}>
-                  {motorRunning ? "RUNNING" : "STOPPED"}
+                <span
+                  className={
+                    derived.motorRunning ? "text-emerald-400" : "text-slate-400"
+                  }
+                >
+                  {derived.motorRunning ? "RUNNING" : "STOPPED"}
                 </span>
               </span>
             </div>
-            <Radio className={`h-5 w-5 ${motorRunning ? "text-emerald-400" : "text-slate-500"}`} />
+            <Radio
+              className={`h-5 w-5 ${
+                derived.motorRunning ? "text-emerald-400" : "text-slate-500"
+              }`}
+            />
           </div>
         </div>
       </div>
@@ -258,22 +306,38 @@ export default function Page() {
       {/* System Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="border border-slate-200 bg-white shadow-sm rounded-lg p-6">
-          <h3 className="text-sm font-medium text-slate-600 mb-4">LED Indicator</h3>
+          <h3 className="text-sm font-medium text-slate-600 mb-4">
+            LED Indicator
+          </h3>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`h-4 w-4 rounded-full ${sensorData.ledStatus ? "bg-emerald-500" : "bg-red-500"}`}></div>
-              <span className="text-slate-700 font-medium">{sensorData.ledStatus ? "Connected" : "Disconnected"}</span>
+              <div
+                className={`h-4 w-4 rounded-full ${
+                  derived.ledStatus ? "bg-emerald-500" : "bg-red-500"
+                }`}
+              ></div>
+              <span className="text-slate-700 font-medium">
+                {derived.ledStatus ? "Connected" : "Disconnected"}
+              </span>
             </div>
             <span className="text-xs text-slate-500">Live</span>
           </div>
         </div>
 
         <div className="border border-slate-200 bg-white shadow-sm rounded-lg p-6">
-          <h3 className="text-sm font-medium text-slate-600 mb-4">Last Update</h3>
-          <p className="text-slate-700 font-medium">Just now</p>
-          <p className="text-xs text-slate-500">Auto-refresh every 2 seconds</p>
+          <h3 className="text-sm font-medium text-slate-600 mb-4">
+            Last Update
+          </h3>
+          <p className="text-slate-700 font-medium">
+            {status?.timestamp
+              ? new Date(status.timestamp).toLocaleString()
+              : "Unknown"}
+          </p>
+          <p className="text-xs text-slate-500">
+            Auto-refresh via Firebase RTDB
+          </p>
         </div>
       </div>
     </main>
-  )
+  );
 }

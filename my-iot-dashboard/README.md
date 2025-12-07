@@ -1,5 +1,50 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Firebase RTDB Integration (Clothesline System)
+
+- Status path: `/clothesline/status`
+- Command path: `/clothesline/command` with property `motor` = `EXTEND` | `RETRACT` | `IDLE`
+
+### Data Specification (Status)
+
+The status object stored at `/clothesline/status`:
+
+```
+{
+	"system_status": "Active",
+	"temperature": 29.7,
+	"humidity": 77,
+	"water_level": 54,
+	"clothesline_status": "Idle",
+	"motor_status": "STOPPED",
+	"led_indicator": "Connected",
+	"timestamp": "2025-12-06T15:00:00Z"
+}
+```
+
+### Mock Data
+
+- Enable mock status publisher by setting `NEXT_PUBLIC_ENABLE_MOCK=true`.
+- It will write a status object every ~3 seconds to `/clothesline/status`.
+
+### Commands
+
+- The dashboard sends commands by updating `/clothesline/command`:
+
+```
+{
+	"motor": "EXTEND" | "RETRACT" | "IDLE",
+	"updatedAt": <server timestamp>
+}
+```
+
+Hardware must listen to `/clothesline/command/motor`, act on `EXTEND`/`RETRACT`, and then write back `IDLE` to prevent repeated actions.
+
+## Dev Notes
+
+- See `app/firebase.ts` for Firebase initialization, RTDB helpers, and mock publisher.
+- The main UI in `app/page.tsx` shows realtime status and provides control buttons.
+
 ## Getting Started
 
 First, run the development server:
