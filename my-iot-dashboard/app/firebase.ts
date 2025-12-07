@@ -47,37 +47,3 @@ export async function sendMotorCommand(cmd: "EXTEND" | "RETRACT" | "IDLE") {
     updatedAt: serverTimestamp(),
   });
 }
-
-// Mock publisher: writes status every 3s when enabled via env
-let mockInterval: ReturnType<typeof setInterval> | null = null;
-
-export function startMockStatusPublisher() {
-  if (mockInterval) return;
-  const enabled = process.env.NEXT_PUBLIC_ENABLE_MOCK === "true";
-  if (!enabled) return;
-
-  const statusRef = ref(db, "/clothesline/status");
-  mockInterval = setInterval(() => {
-    const now = new Date();
-    const payload: ClotheslineStatus = {
-      system_status: "Active",
-      temperature: +(25 + Math.random() * 8).toFixed(1),
-      humidity: Math.round(60 + Math.random() * 30),
-      water_level: Math.round(30 + Math.random() * 50),
-      clothesline_status: ["Idle", "Extending", "Retracting"][
-        Math.floor(Math.random() * 3)
-      ],
-      motor_status: ["STOPPED", "RUNNING"][Math.floor(Math.random() * 2)],
-      led_indicator: "Connected",
-      timestamp: now.toISOString(),
-    };
-    set(statusRef, payload);
-  }, 3000);
-}
-
-export function stopMockStatusPublisher() {
-  if (mockInterval) {
-    clearInterval(mockInterval);
-    mockInterval = null;
-  }
-}

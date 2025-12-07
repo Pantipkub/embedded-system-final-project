@@ -11,12 +11,7 @@ import {
   Play,
   Square,
 } from "lucide-react";
-import {
-  listenStatus,
-  sendMotorCommand,
-  startMockStatusPublisher,
-  ClotheslineStatus,
-} from "./firebase";
+import { listenStatus, sendMotorCommand, ClotheslineStatus } from "./firebase";
 import { computeRainStatus, RainHistoryPoint } from "./lib/rain";
 
 export default function Page() {
@@ -29,7 +24,6 @@ export default function Page() {
   const [enableAuto, setEnableAuto] = useState<boolean>(true);
 
   useEffect(() => {
-    // startMockStatusPublisher();
     const unsub = listenStatus((data) => setStatus(data));
     return () => {
       // @ts-ignore unsubscribe function from onValue
@@ -143,7 +137,7 @@ export default function Page() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
+    <main className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 p-4 md:p-8">
       {/* Header */}
       <div className="mb-8 space-y-2">
         <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
@@ -169,13 +163,7 @@ export default function Page() {
               {derived.ledStatus ? "Active" : "Offline"}
             </span>
           </div>
-          <p className="mt-2 text-xs text-slate-500">
-            Mock is{" "}
-            {process.env.NEXT_PUBLIC_ENABLE_MOCK === "true"
-              ? "enabled"
-              : "disabled"}
-            .
-          </p>
+          {/* Removed mock indicator now that backend mock server is used */}
         </div>
 
         {/* Rain Status Card */}
@@ -293,7 +281,7 @@ export default function Page() {
       </div>
 
       {/* Motor Control Section */}
-      <div className="border border-slate-700 bg-gradient-to-br from-slate-900 to-slate-800 shadow-lg mb-8 rounded-lg p-6">
+      <div className="border border-slate-700 bg-linear-to-br from-slate-900 to-slate-800 shadow-lg mb-8 rounded-lg p-6">
         <div className="mb-4">
           <h2 className="text-white flex items-center gap-2 text-lg font-semibold">
             <Zap className="h-5 w-5" />
