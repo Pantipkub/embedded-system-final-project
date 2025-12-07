@@ -22,7 +22,7 @@ export default function Page() {
   const [status, setStatus] = useState<ClotheslineStatus | null>(null);
 
   useEffect(() => {
-    startMockStatusPublisher();
+    // startMockStatusPublisher();
     const unsub = listenStatus((data) => setStatus(data));
     return () => {
       // @ts-ignore unsubscribe function from onValue
