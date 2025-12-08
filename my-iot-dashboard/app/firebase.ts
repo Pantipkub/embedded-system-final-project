@@ -25,7 +25,8 @@ export type ClotheslineStatus = {
   system_status: string;
   temperature: number;
   humidity: number;
-  water_level: number;
+  ldr: number;
+  water: number;
   clothesline_status: string;
   motor_status: string;
   led_indicator: string;
@@ -35,6 +36,7 @@ export type ClotheslineStatus = {
 export function listenStatus(cb: (data: ClotheslineStatus | null) => void) {
   const statusRef = ref(db, "/clothesline/status");
   return onValue(statusRef, (snap) => {
+    console.log("Test", statusRef)
     cb((snap.val() as ClotheslineStatus) ?? null);
   });
 }

@@ -67,10 +67,14 @@ function randomStatus() {
 
   // Temperature varies mildly
   const temperature = +(24 + Math.random() * 6).toFixed(1);
+  // Light level varies throughout the day
+  const ldr = Math.round(20 + Math.random() * 80); // 20-100%
+  
   return {
     system_status: "Active",
     temperature,
     humidity,
+    ldr,
     water_level: Math.round(30 + Math.random() * 50),
     clothesline_status: isMotorRunning
       ? clotheslinePosition === "extended"
@@ -83,6 +87,8 @@ function randomStatus() {
     led_indicator: "Connected",
     timestamp: now.toISOString(),
   };
+
+
 }
 
 async function writeStatusOnce() {

@@ -125,3 +125,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Add rain animation for falling raindrops */
+@keyframes fall {
+  to {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
