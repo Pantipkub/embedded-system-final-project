@@ -1,0 +1,16 @@
+../Core/Src/main.c:103:6:DWT_Init	1
+../Core/Src/main.c:111:6:delay_us	2
+../Core/Src/main.c:119:6:DHT11_Pin_Output	1
+../Core/Src/main.c:130:6:DHT11_Pin_Input	1
+../Core/Src/main.c:140:5:DHT11_WaitForState	3
+../Core/Src/main.c:151:9:DHT11_Read	9
+../Core/Src/main.c:192:10:Read_LDR	3
+../Core/Src/main.c:219:10:Read_Water	3
+../Core/Src/main.c:246:6:Send_JSON	1
+../Core/Src/main.c:267:5:main	7
+../Core/Src/main.c:383:6:SystemClock_Config	3
+../Core/Src/main.c:430:13:MX_ADC1_Init	3
+../Core/Src/main.c:482:13:MX_USART1_UART_Init	2
+../Core/Src/main.c:515:13:MX_USART2_UART_Init	2
+../Core/Src/main.c:548:13:MX_GPIO_Init	1
+../Core/Src/main.c:590:6:Error_Handler	1
