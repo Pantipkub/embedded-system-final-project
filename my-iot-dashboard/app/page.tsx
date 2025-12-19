@@ -230,7 +230,7 @@ export default function Page() {
             <Zap className="h-5 w-5" />
             Clothesline Motor
           </h2>
-          <p className="text-slate-400 text-sm mt-1">Extend or retract the clothesline with a single tap</p>
+          {/* <p className="text-slate-400 text-sm mt-1">Extend or retract the clothesline with a single tap</p> */}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
